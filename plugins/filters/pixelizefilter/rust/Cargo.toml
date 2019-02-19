@@ -1,0 +1,11 @@
+[package]
+name = "krita-filter-pixelize-rs"
+version = "0.1.0"
+authors = ["Alvin Wong <alvinhochun@gmail.com>"]
+edition = "2018"
+publish = false
+
+[dependencies]
+
+[lib]
+crate-type = ["staticlib"]

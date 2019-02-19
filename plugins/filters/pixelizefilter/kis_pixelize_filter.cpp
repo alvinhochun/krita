@@ -54,6 +54,37 @@
 #include "kis_algebra_2d.h"
 #include "kis_lod_transform.h"
 
+#ifdef USE_RUST
+#include "krita_filter_pixelize_rs.hpp"
+extern "C" {
+
+bool kisSequentialConstIteratorNextPixelCallback(KisSequentialConstIterator *it)
+{
+    return it->nextPixel();
+}
+
+const quint8 *kisSequentialConstIteratorOldRawDataCallback(const KisSequentialConstIterator *it)
+{
+    return it->oldRawData();
+}
+
+bool kisSequentialIteratorNextPixelCallback(KisSequentialIterator *it)
+{
+    return it->nextPixel();
+}
+
+quint8 *kisSequentialIteratorRawDataCallback(KisSequentialIterator *it)
+{
+    return it->rawData();
+}
+
+void koMixColorsOpMixColors(const KoMixColorsOp *mixOp, const quint8 *colors, quint32 nColors, quint8 *dst)
+{
+    mixOp->mixColors(colors, nColors, dst);
+}
+
+} // extern "C"
+#endif
 
 KisPixelizeFilter::KisPixelizeFilter() : KisFilter(id(), FiltersCategoryArtisticId, i18n("&Pixelize..."))
 {
@@ -105,10 +136,16 @@ void KisPixelizeFilter::processImpl(KisPaintDeviceSP device,
 
             //read
             KisSequentialConstIterator srcIt(device, pixelRect);
+            // write only colors in applyRect
+            const QRect writeRect = pixelRect & applyRect;
+            KisSequentialIterator dstIt(device, writeRect);
 
             memset(buffer.data(), 0, bufferSize);
             quint8 *bufferPtr = buffer.data();
 
+#ifdef USE_RUST
+            krita_filter_pixelize_rs_process_block(&srcIt, &dstIt, pixelSize, pixelWidth, pixelHeight, mixOp, bufferPtr, numColors, pixelColor.data());
+#else
             while (srcIt.nextPixel()) {
                 memcpy(bufferPtr, srcIt.oldRawData(), pixelSize);
                 bufferPtr += pixelSize;
@@ -117,13 +154,10 @@ void KisPixelizeFilter::processImpl(KisPaintDeviceSP device,
             // mix all the colors
             mixOp->mixColors(buffer.data(), numColors, pixelColor.data());
 
-            // write only colors in applyRect
-            const QRect writeRect = pixelRect & applyRect;
-
-            KisSequentialIterator dstIt(device, writeRect);
             while (dstIt.nextPixel()) {
                 memcpy(dstIt.rawData(), pixelColor.data(), pixelSize);
             }
+#endif
         }
         progressUpdater->setValue(i);
     }
