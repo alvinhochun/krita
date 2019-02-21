@@ -23,10 +23,8 @@ impl KisSequentialConstIterator {
         unsafe { kisSequentialConstIteratorNextPixelCallback(self) }
     }
 
-    pub unsafe fn old_raw_data_ptr(&self) -> *const u8 {
-        let pixel_ptr = kisSequentialConstIteratorOldRawDataCallback(self);
-        // slice::from_raw_parts(pixel_ptr, pixel_size as usize)
-        pixel_ptr
+    pub fn old_raw_data_ptr(&self) -> *const u8 {
+        unsafe { kisSequentialConstIteratorOldRawDataCallback(self) }
     }
 }
 
