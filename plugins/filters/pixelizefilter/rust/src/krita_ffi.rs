@@ -4,7 +4,7 @@ extern "C" {
         it: *const KisSequentialConstIterator,
     ) -> *const u8;
     fn kisSequentialIteratorNextPixelCallback(it: *mut KisSequentialIterator) -> bool;
-    fn kisSequentialIteratorRawDataCallback(it: *mut KisSequentialIterator) -> *mut u8;
+    fn kisSequentialIteratorRawDataCallback(it: *const KisSequentialIterator) -> *mut u8;
     fn koMixColorsOpMixColors(
         ko_mix_colors_op: *const KoMixColorsOp,
         colors: *const u8,
@@ -38,7 +38,7 @@ impl KisSequentialIterator {
         unsafe { kisSequentialIteratorNextPixelCallback(self) }
     }
 
-    pub fn raw_data_ptr(&mut self) -> *mut u8 {
+    pub fn raw_data_ptr(&self) -> *mut u8 {
         unsafe { kisSequentialIteratorRawDataCallback(self) }
     }
 }

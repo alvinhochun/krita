@@ -73,9 +73,10 @@ bool kisSequentialIteratorNextPixelCallback(KisSequentialIterator *it)
     return it->nextPixel();
 }
 
-quint8 *kisSequentialIteratorRawDataCallback(KisSequentialIterator *it)
+quint8 *kisSequentialIteratorRawDataCallback(const KisSequentialIterator *it)
 {
-    return it->rawData();
+    // KisSequentialIterator::rawData doesn't actually mutate the iterator itself, but it isn't declared const.
+    return const_cast<KisSequentialIterator *>(it)->rawData();
 }
 
 void koMixColorsOpMixColors(const KoMixColorsOp *mixOp, const quint8 *colors, quint32 nColors, quint8 *dst)
