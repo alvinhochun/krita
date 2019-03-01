@@ -36,16 +36,19 @@ pub extern "C" fn krita_filter_pixelize_rs_process_block(
     pixel_size: i32,
     pixelize_width: i32,
     pixelize_height: i32,
-    ko_mix_colors_op: *const KoMixColorsOp,
+    mix_op: *const KoMixColorsOp,
     working_buffer: *mut u8,
     num_colors: u32,
     pixel_color_data: *mut KoColorData,
 ) {
     catch_unwind_abort(|| {
-        let src_it = unsafe { &mut *src_it };
-        let dst_it = unsafe { &mut *dst_it };
-        let mix_op = unsafe { &*ko_mix_colors_op };
+        let src_it = unsafe { src_it.as_mut() }.expect("Expected src_it to not be null");
+        let dst_it = unsafe { dst_it.as_mut() }.expect("Expected dst_it to not be null");
+        let mix_op = unsafe { mix_op.as_ref() }.expect("Expected mix_op to not be null");
 
+        if working_buffer.is_null() {
+            panic!("Expected working_buffer to not be null");
+        }
         let working_buffer = {
             let len = pixelize_width as usize * pixelize_height as usize * pixel_size as usize;
             unsafe { std::slice::from_raw_parts_mut(working_buffer, len) }
