@@ -1,3 +1,8 @@
+#![deny(anonymous_parameters)]
+#![deny(bare_trait_objects)]
+#![deny(elided_lifetimes_in_paths)]
+#![warn(clippy::all)]
+
 mod krita_ffi;
 
 use krita_ffi::KisSequentialConstIterator;
