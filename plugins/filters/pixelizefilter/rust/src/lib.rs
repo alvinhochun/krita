@@ -3,8 +3,10 @@
 #![deny(elided_lifetimes_in_paths)]
 #![warn(clippy::all)]
 
+mod image;
 mod krita_ffi;
 
+use image::PixelIterator;
 use krita_ffi::KisSequentialConstIterator;
 use krita_ffi::KisSequentialIterator;
 use krita_ffi::KoColorData;
@@ -32,8 +34,8 @@ pub extern "C" fn krita_filter_pixelize_rs_process_block(
     src_it: *mut KisSequentialConstIterator,
     dst_it: *mut KisSequentialIterator,
     pixel_size: i32,
-    _pixelize_width: i32,
-    _pixelize_height: i32,
+    pixelize_width: i32,
+    pixelize_height: i32,
     ko_mix_colors_op: *const KoMixColorsOp,
     working_buffer: *mut u8,
     num_colors: u32,
@@ -44,31 +46,30 @@ pub extern "C" fn krita_filter_pixelize_rs_process_block(
         let dst_it = unsafe { &mut *dst_it };
         let mix_op = unsafe { &*ko_mix_colors_op };
 
-        let mut buffer_ptr = working_buffer;
-        while src_it.next_pixel() {
-            unsafe {
-                std::ptr::copy_nonoverlapping(
-                    src_it.old_raw_data_ptr(),
-                    buffer_ptr,
-                    pixel_size as usize,
-                );
-                buffer_ptr = buffer_ptr.offset(pixel_size as isize);
-            }
+        let working_buffer = {
+            let len = pixelize_width as usize * pixelize_height as usize * pixel_size as usize;
+            unsafe { std::slice::from_raw_parts_mut(working_buffer, len) }
+        };
+        let mut working_buffer_it = working_buffer.chunks_exact_mut(pixel_size as usize);
+        let mut src_it = unsafe { PixelIterator::new(src_it, pixel_size as u32) };
+        while let Some(src_data) = src_it.next_old_raw_data() {
+            let working_pixel = working_buffer_it
+                .next()
+                .expect("Expected working_buffer to have enough space for src_it");
+            working_pixel.copy_from_slice(src_data);
         }
 
         // mix all the colors
         unsafe {
-            mix_op.mix_colors(working_buffer, num_colors, pixel_color_data);
+            mix_op.mix_colors(working_buffer.as_ptr(), num_colors, pixel_color_data);
         }
 
-        while dst_it.next_pixel() {
-            unsafe {
-                std::ptr::copy_nonoverlapping(
-                    pixel_color_data as *const u8,
-                    dst_it.raw_data_ptr(),
-                    pixel_size as usize,
-                );
-            }
+        let pixel_color_data = unsafe {
+            std::slice::from_raw_parts(pixel_color_data as *const u8, pixel_size as usize)
+        };
+        let mut dst_it = unsafe { PixelIterator::new(dst_it, pixel_size as u32) };
+        while let Some(dst_data) = dst_it.next_raw_data_mut() {
+            dst_data.copy_from_slice(pixel_color_data);
         }
     })
 }

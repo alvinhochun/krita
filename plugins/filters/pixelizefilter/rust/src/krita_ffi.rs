@@ -13,18 +13,25 @@ extern "C" {
     );
 }
 
+pub trait KisSequentialIteratorBase {
+    fn next_pixel(&mut self) -> bool;
+}
+
 #[repr(C)]
 pub struct KisSequentialConstIterator {
     _private: [u8; 0],
 }
 
 impl KisSequentialConstIterator {
-    pub fn next_pixel(&mut self) -> bool {
-        unsafe { kisSequentialConstIteratorNextPixelCallback(self) }
+    pub unsafe fn old_raw_data(&self, pixel_size: u32) -> &'_ [u8] {
+        let old_raw_data_ptr = kisSequentialConstIteratorOldRawDataCallback(self);
+        std::slice::from_raw_parts(old_raw_data_ptr, pixel_size as usize)
     }
+}
 
-    pub fn old_raw_data_ptr(&self) -> *const u8 {
-        unsafe { kisSequentialConstIteratorOldRawDataCallback(self) }
+impl KisSequentialIteratorBase for KisSequentialConstIterator {
+    fn next_pixel(&mut self) -> bool {
+        unsafe { kisSequentialConstIteratorNextPixelCallback(self) }
     }
 }
 
@@ -34,12 +41,15 @@ pub struct KisSequentialIterator {
 }
 
 impl KisSequentialIterator {
-    pub fn next_pixel(&mut self) -> bool {
-        unsafe { kisSequentialIteratorNextPixelCallback(self) }
+    pub unsafe fn raw_data_mut(&self, pixel_size: u32) -> &'_ mut [u8] {
+        let raw_data_ptr = kisSequentialIteratorRawDataCallback(self);
+        std::slice::from_raw_parts_mut(raw_data_ptr, pixel_size as usize)
     }
+}
 
-    pub fn raw_data_ptr(&self) -> *mut u8 {
-        unsafe { kisSequentialIteratorRawDataCallback(self) }
+impl KisSequentialIteratorBase for KisSequentialIterator {
+    fn next_pixel(&mut self) -> bool {
+        unsafe { kisSequentialIteratorNextPixelCallback(self) }
     }
 }
 
