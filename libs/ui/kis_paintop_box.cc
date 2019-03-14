@@ -44,7 +44,6 @@
 #include <kis_icon.h>
 #include <KoColorSpace.h>
 #include <KoCompositeOpRegistry.h>
-#include <KoResourceSelector.h>
 #include <KoResourceServerAdapter.h>
 #include <KoToolManager.h>
 #include <KoColorSpaceRegistry.h>
@@ -88,7 +87,7 @@ typedef KoResourceServerAdapter<KisPaintOpPreset, SharedPointerStoragePolicy<Kis
 
 KisPaintopBox::KisPaintopBox(KisViewManager *view, QWidget *parent, const char *name)
     : QWidget(parent)
-    , m_resourceProvider(view->resourceProvider())
+    , m_resourceProvider(view->canvasResourceProvider())
     , m_optionWidget(0)
     , m_toolOptionsPopupButton(0)
     , m_brushEditorPopupButton(0)
@@ -464,7 +463,7 @@ KisPaintopBox::KisPaintopBox(KisViewManager *view, QWidget *parent, const char *
     connect(m_sliderChooser[2]->getWidget<KisDoubleSliderSpinBox>("size")   , SIGNAL(valueChanged(qreal)), SLOT(slotSlider3Changed()));
 
     //Needed to connect canvas to favorite resource manager
-    connect(m_viewManager->resourceProvider(), SIGNAL(sigFGColorChanged(KoColor)), SLOT(slotUnsetEraseMode()));
+    connect(m_viewManager->canvasResourceProvider(), SIGNAL(sigFGColorChanged(KoColor)), SLOT(slotUnsetEraseMode()));
 
 
     connect(m_resourceProvider, SIGNAL(sigFGColorUsed(KoColor)), m_favoriteResourceManager, SLOT(slotAddRecentColor(KoColor)));
@@ -639,7 +638,7 @@ void KisPaintopBox::setCurrentPaintop(KisPaintOpPresetSP preset)
 
     // load the current brush engine icon for the brush editor toolbar button
 
-    m_brushEditorPopupButton->slotSetItem(preset.data());
+    m_brushEditorPopupButton->setResource(preset.data());
     m_presetsPopup->setCurrentPaintOpId(paintop.id());
 
 
@@ -839,7 +838,7 @@ void KisPaintopBox::slotCanvasResourceChanged(int key, const QVariant &value)
 {
     if (m_viewManager) {
         sender()->blockSignals(true);
-        KisPaintOpPresetSP preset = m_viewManager->resourceProvider()->resourceManager()->resource(KisCanvasResourceProvider::CurrentPaintOpPreset).value<KisPaintOpPresetSP>();
+        KisPaintOpPresetSP preset = m_viewManager->canvasResourceProvider()->resourceManager()->resource(KisCanvasResourceProvider::CurrentPaintOpPreset).value<KisPaintOpPresetSP>();
         if (preset && m_resourceProvider->currentPreset()->name() != preset->name()) {
             QString compositeOp = preset->settings()->getString("CompositeOp");
             updateCompositeOp(compositeOp);
@@ -877,6 +876,14 @@ void KisPaintopBox::slotCanvasResourceChanged(int key, const QVariant &value)
 
         if (key == KisCanvasResourceProvider::DisablePressure) {
             m_disablePressureAction->setChecked(value.toBool());
+        }
+
+        if (key == KisCanvasResourceProvider::MirrorHorizontal) {
+            m_hMirrorAction->setChecked(value.toBool());
+        }
+
+        if (key == KisCanvasResourceProvider::MirrorVertical) {
+            m_vMirrorAction->setChecked(value.toBool());
         }
 
         sender()->blockSignals(false);

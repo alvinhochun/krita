@@ -43,7 +43,8 @@ set(kritaui_LIB_SRCS
     canvas/kis_snap_config.cpp
     canvas/kis_snap_line_strategy.cpp
     canvas/KisSnapPointStrategy.cpp
-    dialogs/kis_about_application.cpp
+	canvas/KisMirrorAxisConfig.cpp
+	dialogs/kis_about_application.cpp
     dialogs/kis_dlg_adj_layer_props.cc
     dialogs/kis_dlg_adjustment_layer.cc
     dialogs/kis_dlg_filter.cpp
@@ -94,6 +95,7 @@ set(kritaui_LIB_SRCS
     kis_categorized_item_delegate.cpp
     kis_clipboard.cc
     kis_config.cc
+    KisOcioConfiguration.cpp
     kis_control_frame.cpp
     kis_composite_ops_model.cc
     kis_paint_ops_model.cpp
@@ -167,6 +169,8 @@ set(kritaui_LIB_SRCS
     opengl/kis_opengl_shader_loader.cpp
     opengl/kis_texture_tile_info_pool.cpp
     opengl/KisOpenGLUpdateInfoBuilder.cpp
+    opengl/KisOpenGLModeProber.cpp
+    opengl/KisScreenInformationAdapter.cpp
     kis_fps_decoration.cpp
 
     tool/KisToolChangesTracker.cpp
@@ -263,6 +267,7 @@ set(kritaui_LIB_SRCS
     widgets/KoStrokeConfigWidget.cpp
     widgets/KoFillConfigWidget.cpp
     widgets/KisLayerStyleAngleSelector.cpp
+    widgets/KisMemoryReportButton.cpp
 
     KisPaletteEditor.cpp
     dialogs/KisDlgPaletteEditor.cpp
@@ -335,10 +340,6 @@ set(kritaui_LIB_SRCS
     KisDetailsPane.cpp
     KisDocument.cpp
     KisCloneDocumentStroke.cpp
-    KisNodeDelegate.cpp
-    kis_node_view_visibility_delegate.cpp
-    KisNodeToolTip.cpp
-    KisNodeView.cpp
     kis_node_view_color_scheme.cpp
     KisImportExportFilter.cpp
     KisFilterEntry.cpp
@@ -398,7 +399,6 @@ if(WIN32)
         input/wintab/kis_screen_size_choice_dialog.cpp
         qtlockedfile/qtlockedfile_win.cpp
         input/wintab/kis_tablet_support_win8.cpp
-        opengl/kis_opengl_win.cpp
         )
 endif()
 
@@ -430,20 +430,6 @@ if (UNIX)
         ${kritaui_LIB_SRCS}
         qtlockedfile/qtlockedfile_unix.cpp
         )
-    if(NOT USE_QT_XCB)
-    set(kritaui_LIB_SRCS
-        ${kritaui_LIB_SRCS}
-        input/wintab/kis_tablet_support.cpp
-    )
-    endif()
-    if(NOT APPLE AND NOT USE_QT_XCB)
-        set(kritaui_LIB_SRCS
-            ${kritaui_LIB_SRCS}
-            input/wintab/qxcbconnection_xi2.cpp
-            input/wintab/qxcbconnection.cpp
-            input/wintab/kis_xi2_event_filter.cpp
-            )
-    endif()
 endif()
 
 if(APPLE)
@@ -536,8 +522,6 @@ ki18n_wrap_ui(kritaui_LIB_SRCS
 
 )
 
-
-QT5_WRAP_CPP(kritaui_HEADERS_MOC KisNodePropertyAction_p.h)
 
 add_library(kritaui SHARED ${kritaui_HEADERS_MOC} ${kritaui_LIB_SRCS} )
 generate_export_header(kritaui BASE_NAME kritaui)

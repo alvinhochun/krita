@@ -63,12 +63,6 @@
 #include <kis_tablet_support_win.h>
 #include <kis_tablet_support_win8.h>
 #include <QLibrary>
-
-#elif defined HAVE_X11
-#include "config_use_qt_xcb.h"
-#ifndef USE_QT_XCB
-#include <kis_xi2_event_filter.h>
-#endif
 #endif
 
 #if defined HAVE_KCRASH
@@ -180,21 +174,32 @@ extern "C" int main(int argc, char **argv)
             openGLDebugSynchronous = true;
         }
 
-        KisOpenGL::setDefaultFormat(enableOpenGLDebug, openGLDebugSynchronous);
+        KisConfig::RootSurfaceFormat rootSurfaceFormat = KisConfig::rootSurfaceFormat(&kritarc);
+        KisOpenGL::OpenGLRenderer preferredRenderer = KisOpenGL::RendererAuto;
 
         logUsage = kritarc.value("LogUsage", true).toBool();
 
-#ifdef Q_OS_WIN
-        QString preferredOpenGLRenderer = kritarc.value("OpenGLRenderer", "auto").toString();
+        const QString preferredRendererString = kritarc.value("OpenGLRenderer", "auto").toString();
+        preferredRenderer = KisOpenGL::convertConfigToOpenGLRenderer(preferredRendererString);
 
+#ifdef Q_OS_WIN
         // Force ANGLE to use Direct3D11. D3D9 doesn't support OpenGL ES 3 and WARP
         //  might get weird crashes atm.
         qputenv("QT_ANGLE_PLATFORM", "d3d11");
+#endif
 
-        // Probe QPA auto OpenGL detection
-        char *fakeArgv[2] = { argv[0], nullptr }; // Prevents QCoreApplication from modifying the real argc/argv
-        KisOpenGL::probeWindowsQpaOpenGL(1, fakeArgv, preferredOpenGLRenderer);
+        const QSurfaceFormat format =
+            KisOpenGL::selectSurfaceFormat(preferredRenderer, rootSurfaceFormat, enableOpenGLDebug);
 
+        if (format.renderableType() == QSurfaceFormat::OpenGLES) {
+            QCoreApplication::setAttribute(Qt::AA_UseOpenGLES, true);
+        } else {
+            QCoreApplication::setAttribute(Qt::AA_UseDesktopOpenGL, true);
+        }
+        KisOpenGL::setDefaultSurfaceFormat(format);
+        KisOpenGL::setDebugSynchronous(openGLDebugSynchronous);
+
+#ifdef Q_OS_WIN
         // HACK: https://bugs.kde.org/show_bug.cgi?id=390651
         resetRotation();
 #endif
@@ -299,6 +304,9 @@ extern "C" int main(int argc, char **argv)
 
     // first create the application so we can create a pixmap
     KisApplication app(key, argc, argv);
+
+    KisUsageLogger::writeHeader();
+
     if (!language.isEmpty()) {
         if (rightToLeft) {
             app.setLayoutDirection(Qt::RightToLeft);
@@ -361,14 +369,7 @@ extern "C" int main(int argc, char **argv)
         app.setAttribute(Qt::AA_DontShowIconsInMenus);
     }
 
-#if defined HAVE_X11
-#ifndef USE_QT_XCB
-    app.installNativeEventFilter(KisXi2EventFilter::instance());
-#endif
-#endif
-
     app.installEventFilter(KisQtWidgetsTweaker::instance());
-
 
     if (!args.noSplash()) {
         // then create the pixmap from an xpm: we cannot get the

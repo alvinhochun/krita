@@ -4,7 +4,7 @@ message(STATUS "Using CMake version: ${CMAKE_VERSION}")
 
 cmake_minimum_required(VERSION 2.8.12 FATAL_ERROR)
 
-set(MIN_QT_VERSION 5.6.0)
+set(MIN_QT_VERSION 5.10.0)
 
 set(MIN_FRAMEWORKS_VERSION 5.18.0)
 
@@ -61,7 +61,7 @@ if (APPLE)
 endif()
 
 if (CMAKE_COMPILER_IS_GNUCXX AND NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.9 AND NOT WIN32)
-
+    add_definitions(-Wno-suggest-override)
 endif()
 
  ######################
@@ -182,6 +182,10 @@ add_feature_info("Foundation Build" FOUNDATION_BUILD "A Foundation build is a bi
 option(KRITA_ENABLE_BROKEN_TESTS "Enable tests that are marked as broken" OFF)
 add_feature_info("Enable Broken Tests" KRITA_ENABLE_BROKEN_TESTS "Runs broken test when \"make test\" is invoked (use -DKRITA_ENABLE_BROKEN_TESTS=ON to enable).")
 
+option(HAVE_HDR "Enable HDR surface format selection. Available only on certain patched versions of Qt" OFF)
+configure_file(config-hdr.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config-hdr.h)
+add_feature_info("Enable HDR" HAVE_HDR "Enable selection of HDR surface fort Krita window. Needs a particular patched version of Qt")
+
 option(LIMIT_LONG_TESTS "Run long running unittests in a limited quick mode" ON)
 configure_file(config-limit-long-tests.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config-limit-long-tests.h)
 add_feature_info("Limit long tests" LIMIT_LONG_TESTS "Run long running unittests in a limited quick mode")
@@ -301,16 +305,6 @@ find_package(Qt5 ${MIN_QT_VERSION}
         Test
         Concurrent
 )
-
-if (UNIX AND NOT APPLE)
-    if (${Qt5_VERSION} VERSION_GREATER "5.11")
-        set (USE_QT_XCB ON)
-    else()
-        option(USE_QT_XCB "Do not use Krita's forked XCB connection and tablet support on X11, but leave everything to Qt." OFF)
-        add_feature_info("Use Qt's XCB and Tablet support on X11" USE_QT_XCB "Do not use Krita's forked XCB connection and tablet support on X11, but leave everything to Qt.")
-    endif()
-    configure_file(config_use_qt_xcb.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config_use_qt_xcb.h)
-endif()
 
 include (MacroAddFileDependencies)
 include (MacroBoolTo01)

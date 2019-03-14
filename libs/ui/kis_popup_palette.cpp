@@ -160,7 +160,7 @@ KisPopupPalette::KisPopupPalette(KisViewManager* viewManager, KisCoordinatesConv
     setSelectedColor(-1);
 
     m_brushHud = new KisBrushHud(provider, parent);
-    m_brushHud->setMaximumHeight(m_popupPaletteSize);
+    m_brushHud->setFixedHeight(int(m_popupPaletteSize));
     m_brushHud->setVisible(false);
 
     const int auxButtonSize = 35;
@@ -194,19 +194,16 @@ KisPopupPalette::KisPopupPalette(KisViewManager* viewManager, KisCoordinatesConv
     vLayout->addLayout(hLayout);
 
     mirrorMode = new KisHighlightedToolButton(this);
-    mirrorMode->setCheckable(true);
     mirrorMode->setFixedSize(35, 35);
 
     mirrorMode->setToolTip(i18n("Mirror Canvas"));
-    connect(mirrorMode, SIGNAL(clicked(bool)), this, SLOT(slotmirroModeClicked()));
-
+    mirrorMode->setDefaultAction(m_actionCollection->action("mirror_canvas"));
 
     canvasOnlyButton = new KisHighlightedToolButton(this);
-    canvasOnlyButton->setCheckable(true);
     canvasOnlyButton->setFixedSize(35, 35);
 
     canvasOnlyButton->setToolTip(i18n("Canvas Only"));
-    connect(canvasOnlyButton, SIGNAL(clicked(bool)), this, SLOT(slotCanvasonlyModeClicked()));
+    canvasOnlyButton->setDefaultAction(m_actionCollection->action("view_show_canvas_only"));
 
     zoomToOneHundredPercentButton = new QPushButton(this);
     zoomToOneHundredPercentButton->setText(i18n("100%"));
@@ -346,11 +343,9 @@ void KisPopupPalette::adjustLayout(const QPoint &p)
 
 void KisPopupPalette::slotUpdateIcons()
 {
-    zoomToOneHundredPercentButton->setIcon(KisIconUtils::loadIcon("zoom-original"));
-    canvasOnlyButton->setIcon(KisIconUtils::loadIcon("document-new"));
-    mirrorMode->setIcon(KisIconUtils::loadIcon("symmetry-horizontal"));
-    m_settingsButton->setIcon(KisIconUtils::loadIcon("configure"));
+    zoomToOneHundredPercentButton->setIcon(m_actionCollection->action("zoom_to_100pct")->icon());
     m_brushHud->updateIcons();
+    m_settingsButton->setIcon(KisIconUtils::loadIcon("tag"));
     m_brushHudButton->setOnOffIcons(KisIconUtils::loadIcon("arrow-left"), KisIconUtils::loadIcon("arrow-right"));
 }
 
@@ -802,22 +797,6 @@ void KisPopupPalette::slotShowTagsPopup()
     }
 }
 
-void KisPopupPalette::slotmirroModeClicked() {
-    QAction *action = m_actionCollection->action("mirror_canvas");
-
-    if (action) {
-        action->trigger();
-    }
-}
-
-void KisPopupPalette::slotCanvasonlyModeClicked() {
-    QAction *action = m_actionCollection->action("view_show_canvas_only");
-
-    if (action) {
-        action->trigger();
-    }
-}
-
 void KisPopupPalette::slotZoomToOneHundredPercentClicked() {
     QAction *action = m_actionCollection->action("zoom_to_100pct");
 
@@ -909,15 +888,58 @@ QPainterPath KisPopupPalette::createPathFromPresetIndex(int index)
     qreal startingAngle = -(index * angleSlice) + 90;
 
     // the radius will get smaller as the amount of presets shown increases. 10 slots == 41
-    qreal presetRadius = m_colorHistoryOuterRadius * qSin(qDegreesToRadians(angleSlice/2)) / (1-qSin(qDegreesToRadians(angleSlice/2)));
+    qreal radians = qDegreesToRadians((360.0/10)/2);
+    qreal maxRadius = (m_colorHistoryOuterRadius * qSin(radians) / (1-qSin(radians)))-2;
 
+    radians = qDegreesToRadians(angleSlice/2);
+    qreal presetRadius = m_colorHistoryOuterRadius * qSin(radians) / (1-qSin(radians));
+    //If we assume that circles will mesh like a hexagonal grid, then 3.5r is the size of two hexagons interlocking.
 
+    qreal length = m_colorHistoryOuterRadius + presetRadius;
+    // can we can fit in a second row? We don't want the preset icons to get too tiny.
+    if (maxRadius > presetRadius) {
+        //redo all calculations assuming a second row.
+        if (numSlots() % 2) {
+            angleSlice = 360.0/(numSlots()+1);
+            startingAngle = -(index * angleSlice) + 90;
+        }
+        if (numSlots() != m_cachedNumSlots){
+            qreal tempRadius = presetRadius;
+            qreal distance = 0;
+            do{
+                tempRadius+=0.1;
+
+                // Calculate the XY of two adjectant circles using this tempRadius.
+                qreal length1 = m_colorHistoryOuterRadius + tempRadius;
+                qreal length2 = m_colorHistoryOuterRadius + ((maxRadius*2)-tempRadius);
+                qreal pathX1 = length1 * qCos(qDegreesToRadians(startingAngle)) - tempRadius;
+                qreal pathY1 = -(length1) * qSin(qDegreesToRadians(startingAngle)) - tempRadius;
+                qreal startingAngle2 = -(index+1 * angleSlice) + 90;
+                qreal pathX2 = length2 * qCos(qDegreesToRadians(startingAngle2)) - tempRadius;
+                qreal pathY2 = -(length2) * qSin(qDegreesToRadians(startingAngle2)) - tempRadius;
+
+                // Use Pythagorean Theorem to calculate the distance between these two values.
+                qreal m1 = pathX2-pathX1;
+                qreal m2 = pathY2-pathY1;
+
+                distance = sqrt((m1*m1)+(m2*m2));
+            }
+            //As long at there's more distance than the radius of the two presets, continue increasing the radius.
+            while((tempRadius+1)*2 < distance);
+            m_cachedRadius = tempRadius;
+        }
+        m_cachedNumSlots = numSlots();
+        presetRadius = m_cachedRadius;
+        length = m_colorHistoryOuterRadius + presetRadius;
+        if (index % 2) {
+            length = m_colorHistoryOuterRadius + ((maxRadius*2)-presetRadius);
+        }
+    }
     QPainterPath path;
-    float pathX = (m_colorHistoryOuterRadius + presetRadius) * qCos(qDegreesToRadians(startingAngle)) - presetRadius;
-    float pathY = -(m_colorHistoryOuterRadius + presetRadius) * qSin(qDegreesToRadians(startingAngle)) - presetRadius;
-    float pathDiameter = 2 * presetRadius; // distance is used to calculate the X/Y in addition to the preset circle size
+    qreal pathX = length * qCos(qDegreesToRadians(startingAngle)) - presetRadius;
+    qreal pathY = -(length) * qSin(qDegreesToRadians(startingAngle)) - presetRadius;
+    qreal pathDiameter = 2 * presetRadius; // distance is used to calculate the X/Y in addition to the preset circle size
     path.addEllipse(pathX, pathY, pathDiameter, pathDiameter);
-
     return path;
 }
 

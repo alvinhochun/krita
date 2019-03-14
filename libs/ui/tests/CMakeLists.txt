@@ -14,7 +14,6 @@ ecm_add_tests(
     kis_coordinates_converter_test.cpp
     kis_grid_config_test.cpp
     kis_stabilized_events_sampler_test.cpp
-    kis_derived_resources_test.cpp
     kis_brush_hud_properties_config_test.cpp
     kis_shape_commands_test.cpp
     kis_shape_layer_test.cpp
@@ -60,13 +59,6 @@ ecm_add_test( kis_categorized_list_model_test.cpp modeltest.cpp
 
 ecm_add_test( kis_node_juggler_compressed_test.cpp  ../../../sdk/tests/testutil.cpp
     TEST_NAME KisNodeJugglerCompressedTest
-    LINK_LIBRARIES kritaui Qt5::Test
-    NAME_PREFIX "libs-ui-")
-
-set(kis_node_view_test_SRCS kis_node_view_test.cpp  ../../../sdk/tests/testutil.cpp)
-qt5_add_resources(kis_node_view_test_SRCS ${krita_QRCS})
-ecm_add_test(${kis_node_view_test_SRCS}
-    TEST_NAME kis_node_view_test
     LINK_LIBRARIES kritaui Qt5::Test
     NAME_PREFIX "libs-ui-")
 
@@ -182,3 +174,8 @@ krita_add_broken_unit_test(
     NAME_PREFIX "libs-ui-")
 
 
+krita_add_broken_unit_test(
+    kis_derived_resources_test.cpp
+    TEST_NAME kis_derived_resources_test
+    LINK_LIBRARIES kritaui Qt5::Test
+    NAME_PREFIX "libs-ui-")

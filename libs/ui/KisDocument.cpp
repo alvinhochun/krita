@@ -121,6 +121,8 @@
 #include "kis_async_action_feedback.h"
 #include "KisCloneDocumentStroke.h"
 
+#include <KisMirrorAxisConfig.h>
+
 
 // Define the protocol used here for embedded documents' URL
 // This used to "store" but QUrl didn't like it,
@@ -256,6 +258,7 @@ public:
         , autoSaveTimer(new QTimer(q))
         , undoStack(new UndoStack(q))
         , guidesConfig(rhs.guidesConfig)
+        , mirrorAxisConfig(rhs.mirrorAxisConfig)
         , m_bAutoDetectedMime(rhs.m_bAutoDetectedMime)
         , m_url(rhs.m_url)
         , m_file(rhs.m_file)
@@ -302,6 +305,7 @@ public:
     KUndo2Stack *undoStack = 0;
 
     KisGuidesConfig guidesConfig;
+    KisMirrorAxisConfig mirrorAxisConfig;
 
     bool m_bAutoDetectedMime = false; // whether the mimetype in the arguments was detected by the part itself
     QUrl m_url; // local url - the one displayed to the user.
@@ -1181,11 +1185,12 @@ bool KisDocument::openUrl(const QUrl &_url, OpenFlags flags)
         setRecovered(true);
     }
     else {
-        if (!(flags & DontAddToRecent)) {
-            KisPart::instance()->addRecentURLToAllMainWindows(_url);
-        }
-
         if (ret) {
+
+            if (!(flags & DontAddToRecent)) {
+                KisPart::instance()->addRecentURLToAllMainWindows(_url);
+            }
+
             // Detect readonly local-files; remote files are assumed to be writable
             QFileInfo fi(url.toLocalFile());
             setReadWrite(fi.isWritable());
@@ -1267,8 +1272,9 @@ bool KisDocument::openFile()
     dbgUI << localFilePath() << "type:" << typeName;
 
     KisMainWindow *window = KisPart::instance()->currentMainwindow();
+    KoUpdaterPtr updater;
     if (window && window->viewManager()) {
-        KoUpdaterPtr updater = window->viewManager()->createUnthreadedUpdater(i18n("Opening document"));
+        updater = window->viewManager()->createUnthreadedUpdater(i18n("Opening document"));
         d->importExportManager->setUpdater(updater);
     }
 
@@ -1277,6 +1283,9 @@ bool KisDocument::openFile()
     status = d->importExportManager->importDocument(localFilePath(), typeName);
 
     if (status != KisImportExportFilter::OK) {
+        if (window && window->viewManager()) {
+            updater->cancel();
+        }
         QString msg = KisImportExportFilter::conversionStatusString(status);
         if (!msg.isEmpty()) {
             DlgLoadMessages dlg(i18nc("@title:window", "Krita"),
@@ -1585,6 +1594,23 @@ void KisDocument::setGuidesConfig(const KisGuidesConfig &data)
     emit sigGuidesConfigChanged(d->guidesConfig);
 }
 
+const KisMirrorAxisConfig& KisDocument::mirrorAxisConfig() const
+{
+    return d->mirrorAxisConfig;
+}
+
+void KisDocument::setMirrorAxisConfig(const KisMirrorAxisConfig &config)
+{
+    if (d->mirrorAxisConfig == config) {
+        return;
+    }
+
+    d->mirrorAxisConfig = config;
+    setModified(true);
+
+    emit sigMirrorAxisConfigChanged();
+}
+
 void KisDocument::resetURL() {
     setUrl(QUrl());
     setLocalFilePath(QString());
@@ -1647,8 +1673,9 @@ void KisDocument::setLocalFilePath( const QString &localFilePath )
 
 bool KisDocument::openUrlInternal(const QUrl &url)
 {
-    if ( !url.isValid() )
+    if ( !url.isValid() ) {
         return false;
+    }
 
     if (d->m_bAutoDetectedMime) {
         d->mimeType = QByteArray();
@@ -1657,8 +1684,9 @@ bool KisDocument::openUrlInternal(const QUrl &url)
 
     QByteArray mimetype = d->mimeType;
 
-    if ( !closeUrl() )
+    if ( !closeUrl() ) {
         return false;
+    }
 
     d->mimeType = mimetype;
     setUrl(url);
