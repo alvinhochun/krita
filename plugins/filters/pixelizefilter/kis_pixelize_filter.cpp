@@ -58,22 +58,22 @@
 #include "krita_filter_pixelize_rs.hpp"
 extern "C" {
 
-bool kisSequentialConstIteratorNextPixelCallback(KisSequentialConstIterator *it)
+bool ffi_KisSequentialConstIterator_nextPixel(KisSequentialConstIterator *it)
 {
     return it->nextPixel();
 }
 
-const quint8 *kisSequentialConstIteratorOldRawDataCallback(const KisSequentialConstIterator *it)
+const quint8 *ffi_KisSequentialConstIterator_oldRawData(const KisSequentialConstIterator *it)
 {
     return it->oldRawData();
 }
 
-bool kisSequentialIteratorNextPixelCallback(KisSequentialIterator *it)
+bool ffi_KisSequentialIterator_nextPixel(KisSequentialIterator *it)
 {
     return it->nextPixel();
 }
 
-quint8 *kisSequentialIteratorRawDataCallback(const KisSequentialIterator *it)
+quint8 *ffi_KisSequentialIterator_rawData(const KisSequentialIterator *it)
 {
     // KisSequentialIterator::rawData doesn't actually mutate the iterator itself, but it isn't declared const.
     return const_cast<KisSequentialIterator *>(it)->rawData();

@@ -5,12 +5,6 @@ pub use kis_sequential_iterators::{
 };
 
 extern "C" {
-    fn kisSequentialConstIteratorNextPixelCallback(it: *mut KisSequentialConstIterator) -> bool;
-    fn kisSequentialConstIteratorOldRawDataCallback(
-        it: *const KisSequentialConstIterator,
-    ) -> *const u8;
-    fn kisSequentialIteratorNextPixelCallback(it: *mut KisSequentialIterator) -> bool;
-    fn kisSequentialIteratorRawDataCallback(it: *const KisSequentialIterator) -> *mut u8;
     fn koMixColorsOpMixColors(
         ko_mix_colors_op: *const KoMixColorsOp,
         colors: *const u8,
