@@ -3,8 +3,15 @@
 
 extern "C" {
 
-void krita_filter_pixelize_rs_process_block(KisSequentialConstIterator *src_it,
-                                            KisSequentialIterator *dst_it,
+void krita_filter_pixelize_rs_process_block(KisPaintDeviceSP *device,
+                                            qint32 src_left,
+                                            qint32 src_top,
+                                            qint32 src_width,
+                                            qint32 src_height,
+                                            qint32 dst_left,
+                                            qint32 dst_top,
+                                            qint32 dst_width,
+                                            qint32 dst_height,
                                             qint32 pixel_size,
                                             qint32 pixelize_width,
                                             qint32 pixelize_height,

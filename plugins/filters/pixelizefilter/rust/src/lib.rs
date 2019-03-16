@@ -9,6 +9,7 @@ mod krita_ffi;
 use image::PixelIterator;
 use krita_ffi::KisSequentialConstIterator;
 use krita_ffi::KisSequentialIterator;
+use krita_ffi::KisPaintDeviceSP;
 use krita_ffi::KoColorData;
 use krita_ffi::KoMixColorsOp;
 
@@ -31,8 +32,15 @@ fn catch_unwind_abort<F: FnOnce() -> R + std::panic::UnwindSafe, R>(f: F) -> R {
 
 #[no_mangle]
 pub extern "C" fn krita_filter_pixelize_rs_process_block(
-    src_it: *mut KisSequentialConstIterator,
-    dst_it: *mut KisSequentialIterator,
+    device: *mut KisPaintDeviceSP,
+    src_left: i32,
+    src_top: i32,
+    src_width: i32,
+    src_height: i32,
+    dst_left: i32,
+    dst_top: i32,
+    dst_width: i32,
+    dst_height: i32,
     pixel_size: i32,
     pixelize_width: i32,
     pixelize_height: i32,
@@ -42,8 +50,6 @@ pub extern "C" fn krita_filter_pixelize_rs_process_block(
     pixel_color_data: *mut KoColorData,
 ) {
     catch_unwind_abort(|| {
-        let src_it = unsafe { src_it.as_mut() }.expect("Expected src_it to not be null");
-        let dst_it = unsafe { dst_it.as_mut() }.expect("Expected dst_it to not be null");
         let mix_op = unsafe { mix_op.as_ref() }.expect("Expected mix_op to not be null");
 
         if working_buffer.is_null() {
@@ -54,7 +60,8 @@ pub extern "C" fn krita_filter_pixelize_rs_process_block(
             unsafe { std::slice::from_raw_parts_mut(working_buffer, len) }
         };
         let mut working_buffer_it = working_buffer.chunks_exact_mut(pixel_size as usize);
-        let mut src_it = unsafe { PixelIterator::new(src_it, pixel_size as u32) };
+        let mut src_it = KisSequentialConstIterator::new(device, src_left, src_top, src_width, src_height);
+        let mut src_it = unsafe { PixelIterator::new(&mut src_it, pixel_size as u32) };
         while let Some(src_data) = src_it.next_old_raw_data() {
             let working_pixel = working_buffer_it
                 .next()
@@ -70,7 +77,8 @@ pub extern "C" fn krita_filter_pixelize_rs_process_block(
         let pixel_color_data = unsafe {
             std::slice::from_raw_parts(pixel_color_data as *const u8, pixel_size as usize)
         };
-        let mut dst_it = unsafe { PixelIterator::new(dst_it, pixel_size as u32) };
+        let mut dst_it = KisSequentialIterator::new(device, dst_left, dst_top, dst_width, dst_height);
+        let mut dst_it = unsafe { PixelIterator::new(&mut dst_it, pixel_size as u32) };
         while let Some(dst_data) = dst_it.next_raw_data_mut() {
             dst_data.copy_from_slice(pixel_color_data);
         }

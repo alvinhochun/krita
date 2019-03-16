@@ -28,3 +28,8 @@ impl KoMixColorsOp {
         koMixColorsOpMixColors(self, colors, n_colors, dst);
     }
 }
+
+#[repr(C)]
+pub struct KisPaintDeviceSP {
+    _private: [u8; 0],
+}

@@ -58,6 +58,28 @@
 #include "krita_filter_pixelize_rs.hpp"
 extern "C" {
 
+void ffi_KisSequentialConstIterator__ctor_checked(KisSequentialConstIterator *this_ptr,
+                                                  size_t this_size,
+                                                  KisPaintDeviceSP &src_dev,
+                                                  qint32 left,
+                                                  qint32 top,
+                                                  qint32 width,
+                                                  qint32 height)
+{
+    if (this_size < sizeof(KisSequentialConstIterator)) {
+        qFatal("ffi_KisSequentialConstIterator__ctor_checked: this_size is %zd but sizeof(KisSequentialConstIterator) is %zd",
+               this_size,
+               sizeof(KisSequentialConstIterator));
+        std::abort();
+    }
+    new (this_ptr) KisSequentialConstIterator(src_dev, QRect(left, top, width, height));
+}
+
+void ffi_KisSequentialConstIterator__dtor(KisSequentialConstIterator *this_ptr)
+{
+    this_ptr->~KisSequentialConstIterator();
+}
+
 bool ffi_KisSequentialConstIterator_nextPixel(KisSequentialConstIterator *it)
 {
     return it->nextPixel();
@@ -66,6 +88,28 @@ bool ffi_KisSequentialConstIterator_nextPixel(KisSequentialConstIterator *it)
 const quint8 *ffi_KisSequentialConstIterator_oldRawData(const KisSequentialConstIterator *it)
 {
     return it->oldRawData();
+}
+
+void ffi_KisSequentialIterator__ctor_checked(KisSequentialIterator *this_ptr,
+                                                  size_t this_size,
+                                                  const KisPaintDeviceSP &src_dev,
+                                                  qint32 left,
+                                                  qint32 top,
+                                                  qint32 width,
+                                                  qint32 height)
+{
+    if (this_size < sizeof(KisSequentialIterator)) {
+        qFatal("ffi_KisSequentialIterator__ctor_checked: this_size is %zd but sizeof(KisSequentialIterator) is %zd",
+               this_size,
+               sizeof(KisSequentialIterator));
+        std::abort();
+    }
+    new (this_ptr) KisSequentialIterator(src_dev, QRect(left, top, width, height));
+}
+
+void ffi_KisSequentialIterator__dtor(KisSequentialIterator *this_ptr)
+{
+    this_ptr->~KisSequentialIterator();
 }
 
 bool ffi_KisSequentialIterator_nextPixel(KisSequentialIterator *it)
@@ -135,18 +179,32 @@ void KisPixelizeFilter::processImpl(KisPaintDeviceSP device,
             const int numColors = pixelRect.width() * pixelRect.height();
 
 
-            //read
-            KisSequentialConstIterator srcIt(device, pixelRect);
             // write only colors in applyRect
             const QRect writeRect = pixelRect & applyRect;
-            KisSequentialIterator dstIt(device, writeRect);
 
             memset(buffer.data(), 0, bufferSize);
             quint8 *bufferPtr = buffer.data();
 
 #ifdef USE_RUST
-            krita_filter_pixelize_rs_process_block(&srcIt, &dstIt, pixelSize, pixelWidth, pixelHeight, mixOp, bufferPtr, numColors, pixelColor.data());
+            krita_filter_pixelize_rs_process_block(&device,
+                                                   pixelRect.left(),
+                                                   pixelRect.top(),
+                                                   pixelRect.width(),
+                                                   pixelRect.height(),
+                                                   writeRect.left(),
+                                                   writeRect.top(),
+                                                   writeRect.width(),
+                                                   writeRect.height(),
+                                                   pixelSize,
+                                                   pixelWidth,
+                                                   pixelHeight,
+                                                   mixOp,
+                                                   bufferPtr,
+                                                   numColors,
+                                                   pixelColor.data());
 #else
+            //read
+            KisSequentialConstIterator srcIt(device, pixelRect);
             while (srcIt.nextPixel()) {
                 memcpy(bufferPtr, srcIt.oldRawData(), pixelSize);
                 bufferPtr += pixelSize;
@@ -155,6 +213,7 @@ void KisPixelizeFilter::processImpl(KisPaintDeviceSP device,
             // mix all the colors
             mixOp->mixColors(buffer.data(), numColors, pixelColor.data());
 
+            KisSequentialIterator dstIt(device, writeRect);
             while (dstIt.nextPixel()) {
                 memcpy(dstIt.rawData(), pixelColor.data(), pixelSize);
             }
