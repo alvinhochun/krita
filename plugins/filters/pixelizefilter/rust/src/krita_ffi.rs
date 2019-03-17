@@ -11,6 +11,7 @@ extern "C" {
         n_colors: u32,
         dst: *mut KoColorData,
     );
+    fn ffi_KoUpdater_setValue(progressUpdater: *mut KoUpdater, value: i32);
 }
 
 #[repr(C)]
@@ -32,4 +33,17 @@ impl KoMixColorsOp {
 #[repr(C)]
 pub struct KisPaintDeviceSP {
     _private: [u8; 0],
+}
+
+#[repr(C)]
+pub struct KoUpdater {
+    _private: [u8; 0],
+}
+
+impl KoUpdater {
+    pub fn set_value(&mut self, value: i32) {
+        unsafe {
+            ffi_KoUpdater_setValue(self, value);
+        }
+    }
 }

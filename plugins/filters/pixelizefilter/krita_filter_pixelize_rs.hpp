@@ -3,6 +3,26 @@
 
 extern "C" {
 
+void krita_filter_pixelize_rs_process_whole(KisPaintDeviceSP *device,
+                                            qint32 device_bounds_left,
+                                            qint32 device_bounds_top,
+                                            qint32 device_bounds_width,
+                                            qint32 device_bounds_height,
+                                            qint32 apply_left,
+                                            qint32 apply_top,
+                                            qint32 apply_width,
+                                            qint32 apply_height,
+                                            qint32 first_col,
+                                            qint32 first_row,
+                                            qint32 last_col,
+                                            qint32 last_row,
+                                            qint32 pixel_size,
+                                            qint32 pixelize_width,
+                                            qint32 pixelize_height,
+                                            const KoMixColorsOp *mix_op,
+                                            quint8 *pixel_color_data,
+                                            KoUpdater *progress_updater);
+
 void krita_filter_pixelize_rs_process_block(KisPaintDeviceSP *device,
                                             qint32 src_left,
                                             qint32 src_top,

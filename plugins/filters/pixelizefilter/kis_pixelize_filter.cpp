@@ -128,6 +128,11 @@ void koMixColorsOpMixColors(const KoMixColorsOp *mixOp, const quint8 *colors, qu
     mixOp->mixColors(colors, nColors, dst);
 }
 
+void ffi_KoUpdater_setValue(KoUpdater *progressUpdater, int value)
+{
+    progressUpdater->setValue(value);
+}
+
 } // extern "C"
 #endif
 
@@ -156,9 +161,6 @@ void KisPixelizeFilter::processImpl(KisPaintDeviceSP device,
 
     const QRect deviceBounds = device->defaultBounds()->bounds();
 
-    const int bufferSize = pixelSize * pixelWidth * pixelHeight;
-    QScopedArrayPointer<quint8> buffer(new quint8[bufferSize]);
-
     KoColor pixelColor(Qt::black, device->colorSpace());
     KoMixColorsOp *mixOp = device->colorSpace()->mixColorsOp();
 
@@ -170,6 +172,30 @@ void KisPixelizeFilter::processImpl(KisPaintDeviceSP device,
     const qint32 lastRow = divideFloor(applyRect.y() + applyRect.height() - 1, pixelHeight);
 
     progressUpdater->setRange(firstRow, lastRow);
+
+#ifdef USE_RUST
+    krita_filter_pixelize_rs_process_whole(&device,
+                                           deviceBounds.left(),
+                                           deviceBounds.top(),
+                                           deviceBounds.width(),
+                                           deviceBounds.height(),
+                                           applyRect.left(),
+                                           applyRect.top(),
+                                           applyRect.width(),
+                                           applyRect.height(),
+                                           firstCol,
+                                           firstRow,
+                                           lastCol,
+                                           lastRow,
+                                           pixelSize,
+                                           pixelWidth,
+                                           pixelHeight,
+                                           mixOp,
+                                           pixelColor.data(),
+                                           progressUpdater);
+#else
+    const int bufferSize = pixelSize * pixelWidth * pixelHeight;
+    QScopedArrayPointer<quint8> buffer(new quint8[bufferSize]);
 
     for(qint32 i = firstRow; i <= lastRow; i++) {
         for(qint32 j = firstCol; j <= lastCol; j++) {
@@ -221,6 +247,7 @@ void KisPixelizeFilter::processImpl(KisPaintDeviceSP device,
         }
         progressUpdater->setValue(i);
     }
+#endif
 }
 
 QRect KisPixelizeFilter::neededRect(const QRect &rect, const KisFilterConfigurationSP config, int lod) const
