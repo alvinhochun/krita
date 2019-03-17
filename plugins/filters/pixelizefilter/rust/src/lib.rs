@@ -58,6 +58,8 @@ pub extern "C" fn krita_filter_pixelize_rs_process_whole(
     catch_unwind_abort(|| {
         let progress_updater =
             unsafe { progress_updater.as_mut() }.expect("Expected progress_updater to not be null");
+        let mix_op = unsafe { mix_op.as_ref() }.expect("Expected mix_op to not be null");
+
         let device_bounds = Rect::new(
             device_bounds_left,
             device_bounds_top,
@@ -80,22 +82,14 @@ pub extern "C" fn krita_filter_pixelize_rs_process_whole(
                 let num_colors = pixel_rect.width() * pixel_rect.height();
                 let write_rect = pixel_rect.intersected(&apply_rect).unwrap();
                 buffer.clear();
-                buffer.resize((num_colors * pixel_size) as usize, 0);
-                krita_filter_pixelize_rs_process_block(
+                buffer.resize((num_colors * pixel_size) as usize, 0u8);
+                pixelize_block(
                     device,
-                    pixel_rect.left(),
-                    pixel_rect.top(),
-                    pixel_rect.width(),
-                    pixel_rect.height(),
-                    write_rect.left(),
-                    write_rect.top(),
-                    write_rect.width(),
-                    write_rect.height(),
+                    pixel_rect,
+                    write_rect,
                     pixel_size,
-                    pixelize_width,
-                    pixelize_height,
                     mix_op,
-                    buffer.as_mut_ptr(),
+                    &mut buffer,
                     num_colors as u32,
                     pixel_color_data,
                 );
@@ -134,32 +128,54 @@ pub extern "C" fn krita_filter_pixelize_rs_process_block(
             let len = pixelize_width as usize * pixelize_height as usize * pixel_size as usize;
             unsafe { std::slice::from_raw_parts_mut(working_buffer, len) }
         };
-        let mut working_buffer_it = working_buffer.chunks_exact_mut(pixel_size as usize);
-        let mut src_it =
-            KisSequentialConstIterator::new(device, src_left, src_top, src_width, src_height);
-        let mut src_it = unsafe { PixelIterator::new(&mut src_it, pixel_size as u32) };
-        while let Some(src_data) = src_it.next_old_raw_data() {
-            let working_pixel = working_buffer_it
-                .next()
-                .expect("Expected working_buffer to have enough space for src_it");
-            working_pixel.copy_from_slice(src_data);
-        }
-
-        // mix all the colors
-        unsafe {
-            mix_op.mix_colors(working_buffer.as_ptr(), num_colors, pixel_color_data);
-        }
-
-        let pixel_color_data = unsafe {
-            std::slice::from_raw_parts(pixel_color_data as *const u8, pixel_size as usize)
-        };
-        let mut dst_it =
-            KisSequentialIterator::new(device, dst_left, dst_top, dst_width, dst_height);
-        let mut dst_it = unsafe { PixelIterator::new(&mut dst_it, pixel_size as u32) };
-        while let Some(dst_data) = dst_it.next_raw_data_mut() {
-            dst_data.copy_from_slice(pixel_color_data);
-        }
+        pixelize_block(
+            device,
+            Rect::new(src_left, src_top, src_width, src_height),
+            Rect::new(dst_left, dst_top, dst_width, dst_height),
+            pixel_size,
+            mix_op,
+            working_buffer,
+            num_colors,
+            pixel_color_data,
+        );
     })
+}
+
+#[allow(clippy::too_many_arguments)]
+fn pixelize_block(
+    device: *mut KisPaintDeviceSP,
+    src: Rect,
+    dst: Rect,
+    pixel_size: i32,
+    mix_op: &KoMixColorsOp,
+    working_buffer: &mut [u8],
+    num_colors: u32,
+    pixel_color_data: *mut KoColorData,
+) {
+    let mut working_buffer_it = working_buffer.chunks_exact_mut(pixel_size as usize);
+    let mut src_it =
+        KisSequentialConstIterator::new(device, src.left(), src.top(), src.width(), src.height());
+    let mut src_it = unsafe { PixelIterator::new(&mut src_it, pixel_size as u32) };
+    while let Some(src_data) = src_it.next_old_raw_data() {
+        let working_pixel = working_buffer_it
+            .next()
+            .expect("Expected working_buffer to have enough space for src_it");
+        working_pixel.copy_from_slice(src_data);
+    }
+
+    // mix all the colors
+    unsafe {
+        mix_op.mix_colors(working_buffer.as_ptr(), num_colors, pixel_color_data);
+    }
+
+    let pixel_color_data =
+        unsafe { std::slice::from_raw_parts(pixel_color_data as *const u8, pixel_size as usize) };
+    let mut dst_it =
+        KisSequentialIterator::new(device, dst.left(), dst.top(), dst.width(), dst.height());
+    let mut dst_it = unsafe { PixelIterator::new(&mut dst_it, pixel_size as u32) };
+    while let Some(dst_data) = dst_it.next_raw_data_mut() {
+        dst_data.copy_from_slice(pixel_color_data);
+    }
 }
 
 #[cfg(test)]
