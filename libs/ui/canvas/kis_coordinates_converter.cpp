@@ -42,9 +42,10 @@ struct KisCoordinatesConverter::Private {
     bool isXAxisMirrored;
     bool isYAxisMirrored;
     qreal rotationAngle;
-    QSizeF canvasWidgetSize;
+//    QSizeF canvasWidgetSize;
+    QSize canvasWidgetDevicePixelSize;
     qreal devicePixelRatio;
-    QPointF documentOffset;
+    QPoint documentOffsetDevicePixel;
 
     QTransform flakeToWidget;
     QTransform imageToDocument;
@@ -72,7 +73,8 @@ QPointF KisCoordinatesConverter::centeringCorrection() const
 
     QSize documentSize = imageRectInWidgetPixels().toAlignedRect().size();
     QPointF dPoint(documentSize.width(), documentSize.height());
-    QPointF wPoint(m_d->canvasWidgetSize.width(), m_d->canvasWidgetSize.height());
+    QSizeF wSize = canvasWidgetLogicalPixelSize();
+    QPointF wPoint(wSize.width(), wSize.height());
 
     QPointF minOffset = -cfg.vastScrolling() * wPoint;
     QPointF maxOffset = dPoint - wPoint + cfg.vastScrolling() * wPoint;
@@ -105,14 +107,14 @@ QPointF KisCoordinatesConverter::centeringCorrection() const
 
 void KisCoordinatesConverter::correctOffsetToTransformation()
 {
-    m_d->documentOffset = -(imageRectInWidgetPixels().topLeft() -
-          centeringCorrection()).toPoint();
+    m_d->documentOffsetDevicePixel = -((imageRectInWidgetPixels().topLeft() -
+          centeringCorrection()) * m_d->devicePixelRatio).toPoint();
 }
 
 void KisCoordinatesConverter::correctTransformationToOffset()
 {
     QPointF topLeft = imageRectInWidgetPixels().topLeft();
-    QPointF diff = (-topLeft) - m_d->documentOffset;
+    QPointF diff = (-topLeft) - documentOffsetLogicalPixel();
     diff += centeringCorrection();
     m_d->flakeToWidget *= QTransform::fromTranslate(diff.x(), diff.y());
 }
@@ -131,7 +133,7 @@ void KisCoordinatesConverter::recalculateTransformations()
     correctTransformationToOffset();
 
     QRectF irect = imageRectInWidgetPixels();
-    QRectF wrect = QRectF(QPoint(0,0), m_d->canvasWidgetSize);
+    QRectF wrect = QRectF(QPoint(0,0), canvasWidgetLogicalPixelSize());
     QRectF rrect = irect & wrect;
 
     QTransform reversedTransform = flakeToWidgetTransform().inverted();
@@ -139,6 +141,16 @@ void KisCoordinatesConverter::recalculateTransformations()
     QPointF    offset            = canvasBounds.topLeft();
 
     m_d->widgetToViewport = reversedTransform * QTransform::fromTranslate(-offset.x(), -offset.y());
+}
+
+QSizeF KisCoordinatesConverter::canvasWidgetLogicalPixelSize() const
+{
+    return QSizeF(m_d->canvasWidgetDevicePixelSize) / m_d->devicePixelRatio;
+}
+
+QPointF KisCoordinatesConverter::documentOffsetLogicalPixel() const
+{
+    return QPointF(m_d->documentOffsetDevicePixel) / m_d->devicePixelRatio;
 }
 
 
@@ -150,14 +162,27 @@ KisCoordinatesConverter::~KisCoordinatesConverter()
     delete m_d;
 }
 
-void KisCoordinatesConverter::setCanvasWidgetSize(QSize size)
+void KisCoordinatesConverter::setCanvasWidgetSize(QSize size, qreal devicePixelRatio)
 {
-    m_d->canvasWidgetSize = size;
+    qDebug() << "KisCoordinatesConverter::setCanvasWidgetSize" << size << devicePixelRatio;
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wfloat-equal"
+    // This comparison is fine. We expect devicePixelRatio to be exactly identical.
+    if (devicePixelRatio != m_d->devicePixelRatio) {
+#pragma clang diagnostic pop
+        warnUI << "WARNING: KisCoordinatesConverter::setCanvasWidgetSize called with dpr" << devicePixelRatio << "but internal dpr is" << m_d->devicePixelRatio;
+    }
+    // This is how QOpenGLCanvas sets the FBO and the viewport size. If
+    // devicePixelRatio is non-integral, the result is truncated.
+    int viewportWidth = static_cast<int>(size.width() * devicePixelRatio);
+    int viewportHeight = static_cast<int>(size.height() * devicePixelRatio);
+    m_d->canvasWidgetDevicePixelSize = QSize(viewportWidth, viewportHeight);
     recalculateTransformations();
 }
 
 void KisCoordinatesConverter::setDevicePixelRatio(qreal value)
 {
+    qDebug() << "KisCoordinatesConverter::setDevicePixelRatio" << m_d->devicePixelRatio << "to" << value;
     m_d->devicePixelRatio = value;
 }
 
@@ -167,18 +192,41 @@ void KisCoordinatesConverter::setImage(KisImageWSP image)
     recalculateTransformations();
 }
 
-void KisCoordinatesConverter::setDocumentOffset(const QPoint& offset)
+void KisCoordinatesConverter::setDocumentOffsetDevicePixel(const QPoint &offset)
 {
-    QPointF diff = m_d->documentOffset - offset;
+//    int physicalOffsetX = offset.x() * m_d->devicePixelRatio;
+//    int physicalOffsetY = offset.y() * m_d->devicePixelRatio;
+//    // These adjusted positions are in logical pixel but is aligned in device
+//    // pixel space for pixel-perfect rendering.
+//    qreal pixelPerfectOffsetX = physicalOffsetX / m_d->devicePixelRatio;
+//    qreal pixelPerfectOffsetY = physicalOffsetY / m_d->devicePixelRatio;
+//    // FIXME: This is a temporary hack for fixing the canvas under fractional
+//    //        DPI scaling before a new coordinate system is introduced.
+//    QPointF offsetAdjusted(pixelPerfectOffsetX, pixelPerfectOffsetY);
+//    QPointF diff = m_d->documentOffset - offsetAdjusted;
+    QPoint diff = m_d->documentOffsetDevicePixel - offset;
 
-    m_d->documentOffset = offset;
-    m_d->flakeToWidget *= QTransform::fromTranslate(diff.x(), diff.y());
+    m_d->documentOffsetDevicePixel = offset;
+    m_d->flakeToWidget *= QTransform::fromTranslate(diff.x() / m_d->devicePixelRatio, diff.y() / m_d->devicePixelRatio);
+    qDebug() << "offset:" << offset
+//             << "offsetAdjusted:" << offsetAdjusted
+//             << "documentOffset:" << m_d->documentOffset
+             << "documentOffsetDevicePixel" << m_d->documentOffsetDevicePixel
+             << "flakeToWidget:" << m_d->flakeToWidget;
     recalculateTransformations();
+}
+
+void KisCoordinatesConverter::setDocumentOffsetLogicalPixel(const QPoint &offset)
+{
+    int physicalOffsetX = static_cast<int>(offset.x() * m_d->devicePixelRatio);
+    int physicalOffsetY = static_cast<int>(offset.y() * m_d->devicePixelRatio);
+    setDocumentOffsetDevicePixel(QPoint(physicalOffsetX, physicalOffsetY));
 }
 
 QPoint KisCoordinatesConverter::documentOffset() const
 {
-    return QPoint(int(m_d->documentOffset.x()), int(m_d->documentOffset.y()));
+    QPointF offset = documentOffsetLogicalPixel();
+    return QPoint(int(offset.x()), int(offset.y()));
 }
 
 qreal KisCoordinatesConverter::rotationAngle() const
@@ -218,7 +266,7 @@ QPoint KisCoordinatesConverter::rotate(QPointF center, qreal angle)
     correctOffsetToTransformation();
     recalculateTransformations();
 
-    return m_d->documentOffset.toPoint();
+    return documentOffsetLogicalPixel().toPoint();
 }
 
 QPoint KisCoordinatesConverter::mirror(QPointF center, bool mirrorXAxis, bool mirrorYAxis)
@@ -259,7 +307,7 @@ QPoint KisCoordinatesConverter::mirror(QPointF center, bool mirrorXAxis, bool mi
     correctOffsetToTransformation();
     recalculateTransformations();
 
-    return m_d->documentOffset.toPoint();
+    return documentOffsetLogicalPixel().toPoint();
 }
 
 bool KisCoordinatesConverter::xAxisMirrored() const
@@ -285,7 +333,7 @@ QPoint KisCoordinatesConverter::resetRotation(QPointF center)
     correctOffsetToTransformation();
     recalculateTransformations();
 
-    return m_d->documentOffset.toPoint();
+    return documentOffsetLogicalPixel().toPoint();
 }
 
 QTransform KisCoordinatesConverter::imageToWidgetTransform() const{
@@ -415,12 +463,12 @@ QSizeF KisCoordinatesConverter::imageSizeInFlakePixels() const
 
 QRectF KisCoordinatesConverter::widgetRectInFlakePixels() const
 {
-    return widgetToFlake(QRectF(QPoint(0,0), m_d->canvasWidgetSize));
+    return widgetToFlake(QRectF(QPoint(0,0), canvasWidgetLogicalPixelSize()));
 }
 
 QRectF KisCoordinatesConverter::widgetRectInImagePixels() const
 {
-    return widgetToImage(QRectF(QPoint(0,0), m_d->canvasWidgetSize));
+    return widgetToImage(QRectF(QPoint(0,0), canvasWidgetLogicalPixelSize()));
 }
 
 QPointF KisCoordinatesConverter::flakeCenterPoint() const
@@ -432,7 +480,8 @@ QPointF KisCoordinatesConverter::flakeCenterPoint() const
 
 QPointF KisCoordinatesConverter::widgetCenterPoint() const
 {
-    return QPointF(m_d->canvasWidgetSize.width() / 2.0, m_d->canvasWidgetSize.height() / 2.0);
+    QSizeF size = canvasWidgetLogicalPixelSize();
+    return QPointF(size.width() / 2.0, size.height() / 2.0);
 }
 
 void KisCoordinatesConverter::imageScale(qreal *scaleX, qreal *scaleY) const

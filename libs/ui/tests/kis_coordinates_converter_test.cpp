@@ -44,8 +44,8 @@ void KisCoordinatesConverterTest::testConversion()
     initImage(&image, &converter);
 
     converter.setImage(image);
-    converter.setDocumentOffset(QPoint(20,20));
-    converter.setCanvasWidgetSize(QSize(500,500));
+    converter.setDocumentOffsetDevicePixel(QPoint(20,20));
+    converter.setCanvasWidgetSize(QSize(500,500), 1.0);
     converter.setZoom(1.);
 
     QRectF testRect(100,100,100,100);
@@ -84,8 +84,8 @@ void KisCoordinatesConverterTest::testImageCropping()
     initImage(&image, &converter);
 
     converter.setImage(image);
-    converter.setDocumentOffset(QPoint(0,0));
-    converter.setCanvasWidgetSize(QSize(500,500));
+    converter.setDocumentOffsetDevicePixel(QPoint(0,0));
+    converter.setCanvasWidgetSize(QSize(500,500), 1.0);
 
     converter.setZoom(1.);
 
@@ -104,8 +104,8 @@ void KisCoordinatesConverterTest::testTransformations()
     initImage(&image, &converter);
 
     converter.setImage(image);
-    converter.setDocumentOffset(QPoint(20,30));
-    converter.setCanvasWidgetSize(QSize(500,500));
+    converter.setDocumentOffsetDevicePixel(QPoint(20,30));
+    converter.setCanvasWidgetSize(QSize(500,500), 1.0);
 
     QRectF testRect(100,100,100,100);
     QTransform imageToWidget;
@@ -145,8 +145,8 @@ void KisCoordinatesConverterTest::testConsistency()
     initImage(&image, &converter);
 
     converter.setImage(image);
-    converter.setDocumentOffset(QPoint(20,30));
-    converter.setCanvasWidgetSize(QSize(500,500));
+    converter.setDocumentOffsetDevicePixel(QPoint(20,30));
+    converter.setCanvasWidgetSize(QSize(500,500), 1.0);
 
     QRectF testRect(100,100,100,100);
     QTransform imageToWidget;
@@ -178,8 +178,8 @@ void KisCoordinatesConverterTest::testRotation()
     QRectF testRect(800, 100, 300, 300);
 
     converter.setImage(image);
-    converter.setDocumentOffset(QPoint(0,0));
-    converter.setCanvasWidgetSize(widgetSize);
+    converter.setDocumentOffsetDevicePixel(QPoint(0,0));
+    converter.setCanvasWidgetSize(widgetSize, 1.0);
 
     converter.rotate(converter.widgetCenterPoint(), 30);
     converter.setZoom(1.);
@@ -212,8 +212,8 @@ void KisCoordinatesConverterTest::testMirroring()
     QRectF testRect(300, 100, 200, 200);
 
     converter.setImage(image);
-    converter.setDocumentOffset(QPoint(200,100));
-    converter.setCanvasWidgetSize(widgetSize);
+    converter.setDocumentOffsetDevicePixel(QPoint(200,100));
+    converter.setCanvasWidgetSize(widgetSize, 1.0);
 
 //    QTransform imageToWidget;
 //    QTransform documentToWidget;
@@ -246,8 +246,8 @@ void KisCoordinatesConverterTest::testMirroringCanvasBiggerThanImage()
     QRectF testRect(300, 100, 200, 200);
 
     converter.setImage(image);
-    converter.setDocumentOffset(QPoint(-50,-50));
-    converter.setCanvasWidgetSize(widgetSize);
+    converter.setDocumentOffsetDevicePixel(QPoint(-50,-50));
+    converter.setCanvasWidgetSize(widgetSize, 1.0);
 
 //    QTransform imageToWidget;
 //    QTransform documentToWidget;

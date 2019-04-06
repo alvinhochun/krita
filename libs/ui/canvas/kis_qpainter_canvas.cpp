@@ -240,7 +240,7 @@ void KisQPainterCanvas::resizeEvent(QResizeEvent *e)
         size.setHeight(1);
     }
 
-    coordinatesConverter()->setCanvasWidgetSize(size);
+    coordinatesConverter()->setCanvasWidgetSize(size, devicePixelRatioF());
     m_d->prescaledProjection->notifyCanvasSizeChanged(size);
 }
 

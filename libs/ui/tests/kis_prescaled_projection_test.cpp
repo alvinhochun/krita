@@ -297,8 +297,8 @@ public:
         converter.setResolution(100, 100);
         converter.setZoom(1.);
         converter.setImage(image);
-        converter.setCanvasWidgetSize(QSize(100,100));
-        converter.setDocumentOffset(QPoint(100,100));
+        converter.setCanvasWidgetSize(QSize(100,100), 1.0);
+        converter.setDocumentOffsetDevicePixel(QPoint(100,100));
 
         projection.setCoordinatesConverter(&converter);
         projection.setMonitorProfile(0,
@@ -327,7 +327,7 @@ void KisPrescaledProjectionTest::testScrollingZoom100()
     QVERIFY(TestUtil::compareQImages(pt, result, reference));
 
     // Test actual scrolling
-    t.converter.setDocumentOffset(QPoint(150,150));
+    t.converter.setDocumentOffsetDevicePixel(QPoint(150,150));
     t.projection.viewportMoved(QPoint(-50,-50));
 
     result = t.projection.prescaledQImage();
@@ -341,9 +341,9 @@ void KisPrescaledProjectionTest::testScrollingZoom50()
 {
     PrescaledProjectionTester t;
 
-    t.converter.setDocumentOffset(QPoint(0,0));
+    t.converter.setDocumentOffsetDevicePixel(QPoint(0,0));
 
-    t.converter.setCanvasWidgetSize(QSize(300,300));
+    t.converter.setCanvasWidgetSize(QSize(300,300), 1.0);
     t.projection.notifyCanvasSizeChanged(QSize(300,300));
 
     QEXPECT_FAIL("", "Images should be the same, but aren't", Continue);
@@ -361,7 +361,7 @@ void KisPrescaledProjectionTest::testScrollingZoom50()
                                   "testScrollingZoom50",
                                   "zoom50"));
 
-    t.converter.setDocumentOffset(QPoint(50,50));
+    t.converter.setDocumentOffsetDevicePixel(QPoint(50,50));
     t.projection.viewportMoved(QPoint(-50,-50));
 
     QEXPECT_FAIL("", "Images should be the same, but aren't", Continue);
@@ -375,9 +375,9 @@ void KisPrescaledProjectionTest::testUpdates()
 {
     PrescaledProjectionTester t;
 
-    t.converter.setDocumentOffset(QPoint(10,10));
+    t.converter.setDocumentOffsetDevicePixel(QPoint(10,10));
 
-    t.converter.setCanvasWidgetSize(2*QSize(300,300));
+    t.converter.setCanvasWidgetSize(2*QSize(300,300), 1.0);
     t.projection.notifyCanvasSizeChanged(2*QSize(300,300));
 
 

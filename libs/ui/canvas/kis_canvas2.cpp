@@ -1052,7 +1052,7 @@ KisImageWSP KisCanvas2::currentImage() const
 void KisCanvas2::documentOffsetMoved(const QPoint &documentOffset)
 {
     QPointF offsetBefore = m_d->coordinatesConverter->imageRectInViewportPixels().topLeft();
-    m_d->coordinatesConverter->setDocumentOffset(documentOffset);
+    m_d->coordinatesConverter->setDocumentOffsetLogicalPixel(documentOffset);
     QPointF offsetAfter = m_d->coordinatesConverter->imageRectInViewportPixels().topLeft();
 
     QPointF moveOffset = offsetAfter - offsetBefore;

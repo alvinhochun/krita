@@ -59,10 +59,11 @@ public:
     KisCoordinatesConverter();
     ~KisCoordinatesConverter() override;
 
-    void setCanvasWidgetSize(QSize size);
+    void setCanvasWidgetSize(QSize size, qreal devicePixelRatio);
     void setDevicePixelRatio(qreal value);
     void setImage(KisImageWSP image);
-    void setDocumentOffset(const QPoint &offset);
+    void setDocumentOffsetDevicePixel(const QPoint &offset);
+    void setDocumentOffsetLogicalPixel(const QPoint &offset);
 
     QPoint documentOffset() const;
     qreal rotationAngle() const;
@@ -157,6 +158,9 @@ private:
     void correctOffsetToTransformation();
     void correctTransformationToOffset();
     void recalculateTransformations();
+
+    QSizeF canvasWidgetLogicalPixelSize() const;
+    QPointF documentOffsetLogicalPixel() const;
 
 private:
     struct Private;
