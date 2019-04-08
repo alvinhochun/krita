@@ -220,7 +220,7 @@ void KisCanvas2::setup()
 
     setLodAllowedInCanvas(m_d->lodAllowedInImage);
     m_d->animationPlayer = new KisAnimationPlayer(this);
-    connect(m_d->view->canvasController()->proxyObject, SIGNAL(moveDocumentOffset(QPoint)), SLOT(documentOffsetMoved(QPoint)));
+    connect(m_d->view->canvasController()->proxyObject, SIGNAL(moveDocumentOffsetDevicePixel(QPoint)), SLOT(documentDevicePixelOffsetMoved(QPoint)));
     connect(KisConfigNotifier::instance(), SIGNAL(configChanged()), SLOT(slotConfigChanged()));
 
     /**
@@ -1049,10 +1049,10 @@ KisImageWSP KisCanvas2::currentImage() const
     return m_d->view->image();
 }
 
-void KisCanvas2::documentOffsetMoved(const QPoint &documentOffset)
+void KisCanvas2::documentDevicePixelOffsetMoved(const QPoint &documentOffset)
 {
     QPointF offsetBefore = m_d->coordinatesConverter->imageRectInViewportPixels().topLeft();
-    m_d->coordinatesConverter->setDocumentOffsetLogicalPixel(documentOffset);
+    m_d->coordinatesConverter->setDocumentOffsetDevicePixel(documentOffset);
     QPointF offsetAfter = m_d->coordinatesConverter->imageRectInViewportPixels().topLeft();
 
     QPointF moveOffset = offsetAfter - offsetBefore;

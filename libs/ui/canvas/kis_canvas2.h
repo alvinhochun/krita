@@ -292,7 +292,7 @@ private Q_SLOTS:
      *
      * @param documentOffset the offset in widget pixels
      */
-    void documentOffsetMoved(const QPoint &documentOffset);
+    void documentDevicePixelOffsetMoved(const QPoint &documentOffset);
 
     void slotSelectionChanged();
 

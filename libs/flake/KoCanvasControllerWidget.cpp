@@ -55,7 +55,7 @@ void KoCanvasControllerWidget::Private::setDocumentOffset()
     // compensate.
 
     QPoint pt(q->horizontalScrollBar()->value(), q->verticalScrollBar()->value());
-    q->proxyObject->emitMoveDocumentOffset(pt);
+    q->proxyObject->emitMoveDocumentOffsetDevicePixel(pt);
 
     QWidget *canvasWidget = canvas->canvasWidget();
 
@@ -86,11 +86,13 @@ void KoCanvasControllerWidget::Private::resetScrollBars()
     int horizontalReserve = vastScrollingFactor * drawW;
     int verticalReserve = vastScrollingFactor * drawH;
 
-    int xMin = -horizontalReserve;
-    int yMin = -verticalReserve;
+    // HACK: Convert to device pixels
+    int xMin = static_cast<int>(-horizontalReserve * viewportWidget->devicePixelRatioF());
+    int yMin = static_cast<int>(-verticalReserve * viewportWidget->devicePixelRatioF());
 
-    int xMax = docW - drawW + horizontalReserve;
-    int yMax = docH - drawH + verticalReserve;
+    // HACK: Convert to device pixels
+    int xMax = static_cast<int>(docW - (drawW + horizontalReserve) * viewportWidget->devicePixelRatioF());
+    int yMax = static_cast<int>(docH - (drawH + verticalReserve) * viewportWidget->devicePixelRatioF());
 
     hScroll->setRange(xMin, xMax);
     vScroll->setRange(yMin, yMax);

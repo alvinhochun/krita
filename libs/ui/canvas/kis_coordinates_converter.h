@@ -63,7 +63,7 @@ public:
     void setDevicePixelRatio(qreal value);
     void setImage(KisImageWSP image);
     void setDocumentOffsetDevicePixel(const QPoint &offset);
-    void setDocumentOffsetLogicalPixel(const QPoint &offset);
+//    void setDocumentOffsetLogicalPixel(const QPoint &offset);
 
     QPoint documentOffset() const;
     qreal rotationAngle() const;

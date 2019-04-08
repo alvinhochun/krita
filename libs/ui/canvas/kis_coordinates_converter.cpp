@@ -216,12 +216,12 @@ void KisCoordinatesConverter::setDocumentOffsetDevicePixel(const QPoint &offset)
     recalculateTransformations();
 }
 
-void KisCoordinatesConverter::setDocumentOffsetLogicalPixel(const QPoint &offset)
-{
-    int physicalOffsetX = static_cast<int>(offset.x() * m_d->devicePixelRatio);
-    int physicalOffsetY = static_cast<int>(offset.y() * m_d->devicePixelRatio);
-    setDocumentOffsetDevicePixel(QPoint(physicalOffsetX, physicalOffsetY));
-}
+//void KisCoordinatesConverter::setDocumentOffsetLogicalPixel(const QPoint &offset)
+//{
+//    int physicalOffsetX = static_cast<int>(offset.x() * m_d->devicePixelRatio);
+//    int physicalOffsetY = static_cast<int>(offset.y() * m_d->devicePixelRatio);
+//    setDocumentOffsetDevicePixel(QPoint(physicalOffsetX, physicalOffsetY));
+//}
 
 QPoint KisCoordinatesConverter::documentOffset() const
 {
