@@ -50,6 +50,7 @@ struct KisCoordinatesConverter::Private {
     QTransform flakeToWidget;
     QTransform imageToDocument;
     QTransform documentToFlake;
+    QTransform widgetToDevice;
     QTransform widgetToViewport;
 };
 
@@ -184,6 +185,7 @@ void KisCoordinatesConverter::setDevicePixelRatio(qreal value)
 {
     qDebug() << "KisCoordinatesConverter::setDevicePixelRatio" << m_d->devicePixelRatio << "to" << value;
     m_d->devicePixelRatio = value;
+    m_d->widgetToDevice = QTransform::fromScale(value, value);
 }
 
 void KisCoordinatesConverter::setImage(KisImageWSP image)
@@ -338,6 +340,10 @@ QPoint KisCoordinatesConverter::resetRotation(QPointF center)
 
 QTransform KisCoordinatesConverter::imageToWidgetTransform() const{
     return m_d->imageToDocument * m_d->documentToFlake * m_d->flakeToWidget;
+}
+
+QTransform KisCoordinatesConverter::imageToDeviceTransform() const {
+    return m_d->imageToDocument * m_d->documentToFlake * m_d->flakeToWidget * m_d->widgetToDevice;
 }
 
 QTransform KisCoordinatesConverter::imageToDocumentTransform() const {

@@ -369,16 +369,19 @@ void KisCanvasController::resetScrollBars()
     if (!doc) return;
 
     QRectF documentBounds = doc->documentBounds();
-    QRectF viewRect = m_d->coordinatesConverter->imageToWidget(documentBounds);
+    QRectF viewRect = m_d->coordinatesConverter->imageToDevice(documentBounds);
+//    QRectF viewRect = m_d->coordinatesConverter->imageToWidget(documentBounds) * m_d->view->devicePixelRatioF(); //* m_d->coordinatesConverter.;
 
     // Cancel out any existing pan
     const QRectF imageBounds = m_d->view->image()->bounds();
-    const QRectF imageBB = m_d->coordinatesConverter->imageToWidget(imageBounds);
+    qDebug() << "imageBounds:" << imageBounds;
+    const QRectF imageBB = m_d->coordinatesConverter->imageToDevice(imageBounds);
+    qDebug() << "imageBB:" << imageBounds;
     QPointF pan = imageBB.topLeft();
     viewRect.translate(-pan);
 
-    int drawH = viewport()->height();
-    int drawW = viewport()->width();
+    int drawH = static_cast<int>(viewport()->height() * viewport()->devicePixelRatioF());
+    int drawW = static_cast<int>(viewport()->width() * viewport() ->devicePixelRatioF());
 
     qreal horizontalReserve = vastScrollingFactor() * drawW;
     qreal verticalReserve = vastScrollingFactor() * drawH;
@@ -388,6 +391,16 @@ void KisCanvasController::resetScrollBars()
 
     qreal xMax = viewRect.right() - drawW + horizontalReserve;
     qreal yMax = viewRect.bottom() - drawH + verticalReserve;
+
+    qDebug() << "viewRect:" << viewRect
+             << "drawH:" << drawH
+             << "drawW:" << drawW
+             << "horizontalReserve:" << horizontalReserve
+             << "verticalReserve:" << verticalReserve
+             << "xMin:" << xMin
+             << "yMin:" << yMin
+             << "xMax:" << xMax
+             << "yMax:" << yMax;
 
     QScrollBar *hScroll = horizontalScrollBar();
     QScrollBar *vScroll = verticalScrollBar();

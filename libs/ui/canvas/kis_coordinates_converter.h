@@ -116,7 +116,11 @@ public:
     template<class T> typename _Private::Traits<T>::Result
     widgetToImage(const T& obj) const { return _Private::Traits<T>::map(imageToWidgetTransform().inverted(), obj); }
 
+    template<class T> typename _Private::Traits<T>::Result
+    imageToDevice(const T& obj) const { return _Private::Traits<T>::map(imageToDeviceTransform(), obj); }
+
     QTransform imageToWidgetTransform() const;
+    QTransform imageToDeviceTransform() const;
     QTransform imageToDocumentTransform() const;
     QTransform documentToFlakeTransform() const;
     QTransform imageToViewportTransform() const;
