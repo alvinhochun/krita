@@ -220,7 +220,7 @@ void KisCanvas2::setup()
 
     setLodAllowedInCanvas(m_d->lodAllowedInImage);
     m_d->animationPlayer = new KisAnimationPlayer(this);
-    connect(m_d->view->canvasController()->proxyObject, SIGNAL(moveDocumentOffsetDevicePixel(QPoint)), SLOT(documentDevicePixelOffsetMoved(QPoint)));
+    connect(m_d->view->canvasController()->proxyObject, SIGNAL(moveDocumentOffset(QPoint)), SLOT(documentDevicePixelOffsetMoved(QPoint)));
     connect(KisConfigNotifier::instance(), SIGNAL(configChanged()), SLOT(slotConfigChanged()));
 
     /**

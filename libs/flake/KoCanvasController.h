@@ -349,7 +349,7 @@ public:
     void emitCanvasMousePositionChanged(const QPoint &position) { emit canvasMousePositionChanged(position); }
     void emitDocumentMousePositionChanged(const QPointF &position) { emit documentMousePositionChanged(position); }
     void emitSizeChanged(const QSize &size) { emit sizeChanged(size); }
-    void emitMoveDocumentOffsetDevicePixel(const QPoint &point) { emit moveDocumentOffsetDevicePixel(point); }
+    void emitMoveDocumentOffsetDevicePixel(const QPoint &point) { emit moveDocumentOffset(point); }
     void emitZoomRelative(const qreal factor, const QPointF &stillPoint) { emit zoomRelative(factor, stillPoint); }
 
     // Convenience method to retrieve the canvas controller for who needs to use QPointer
@@ -407,7 +407,7 @@ Q_SIGNALS:
      * @param point the new top-left point from which the document should
      * be drawn.
      */
-    void moveDocumentOffsetDevicePixel(const QPoint &point);
+    void moveDocumentOffset(const QPoint &point);
 
     /**
      * Emitted when zoomRelativeToPoint have calculated a factor by which
