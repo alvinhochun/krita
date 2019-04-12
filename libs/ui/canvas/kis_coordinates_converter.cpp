@@ -27,6 +27,8 @@
 #include <kis_config.h>
 #include <kis_image.h>
 
+#include <QtMath>
+
 
 struct KisCoordinatesConverter::Private {
     Private():
@@ -152,12 +154,25 @@ KisCoordinatesConverter::~KisCoordinatesConverter()
 
 void KisCoordinatesConverter::setCanvasWidgetSize(QSize size)
 {
-    m_d->canvasWidgetSize = size;
+    // The given widget size is in widget logical pixels. Here we adjust it to
+    // reflect the actual viewport size in case devicePixelRatio is fractional.
+    // FIXME: It might be more appropriate to do this rounding in the canvas classes...
+    int viewportWidth = static_cast<int>(size.width() * m_d->devicePixelRatio);
+    int viewportHeight = static_cast<int>(size.height() * m_d->devicePixelRatio);
+    // The adjusted size will be in logical pixel but aligned to device pixels.
+    qreal pixelPerfectWidth = viewportWidth / m_d->devicePixelRatio;
+    qreal pixelPerfectHeight = viewportHeight / m_d->devicePixelRatio;
+    m_d->canvasWidgetSize = QSizeF(pixelPerfectWidth, pixelPerfectHeight);
+    qDebug() << "KisCoordinatesConverter::setCanvasWidgetSize"
+             << "size:" << size
+             << "adjusted size:" << m_d->canvasWidgetSize;
     recalculateTransformations();
 }
 
 void KisCoordinatesConverter::setDevicePixelRatio(qreal value)
 {
+    qDebug() << "KisCoordinatesConverter::setDevicePixelRatio,"
+             << "value:" << m_d->devicePixelRatio << "to" << value;
     m_d->devicePixelRatio = value;
 }
 
@@ -169,10 +184,28 @@ void KisCoordinatesConverter::setImage(KisImageWSP image)
 
 void KisCoordinatesConverter::setDocumentOffset(const QPoint& offset)
 {
-    QPointF diff = m_d->documentOffset - offset;
+    // The given offset is in widget logical pixels. In order to prevent fuzzy
+    // canvas rendering at 100% pixel-perfect zoom level when devicePixelRatio
+    // is not integral, we adjusts the offset to map to whole device pixels.
+    // We use qFloor here since the offset can be negative.
+    int deviceOffsetX = qFloor(offset.x() * m_d->devicePixelRatio);
+    int deviceOffsetY = qFloor(offset.y() * m_d->devicePixelRatio);
+    // These adjusted offsets will be in logical pixel but is aligned in device
+    // pixel space for pixel-perfect rendering.
+    qreal pixelPerfectOffsetX = deviceOffsetX / m_d->devicePixelRatio;
+    qreal pixelPerfectOffsetY = deviceOffsetY / m_d->devicePixelRatio;
+    // FIXME: This is a temporary hack for fixing the canvas under fractional
+    //        DPI scaling before a new coordinate system is introduced.
+    QPointF offsetAdjusted(pixelPerfectOffsetX, pixelPerfectOffsetY);
+    QPointF diff = m_d->documentOffset - offsetAdjusted;
 
-    m_d->documentOffset = offset;
+    m_d->documentOffset = offsetAdjusted;
     m_d->flakeToWidget *= QTransform::fromTranslate(diff.x(), diff.y());
+    qDebug() << "KisCoordinatesConverter::setDocumentOffset,"
+             << "offset:" << offset
+             << "offsetAdjusted:" << offsetAdjusted
+             << "documentOffset:" << m_d->documentOffset
+             << "flakeToWidget:" << m_d->flakeToWidget;
     recalculateTransformations();
 }
 
