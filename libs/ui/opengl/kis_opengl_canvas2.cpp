@@ -384,7 +384,12 @@ void KisOpenGLCanvas2::reportFailedShaderCompilation(const QString &context)
 
 void KisOpenGLCanvas2::resizeGL(int width, int height)
 {
-    coordinatesConverter()->setCanvasWidgetSize(QSize(width, height));
+    // The given size is the widget size but here we actually want to give
+    // KisCoordinatesConverter the viewport size aligned to device pixels.
+    coordinatesConverter()->setCanvasWidgetSize(widgetSizeAlignedToDevicePixel());
+    qDebug() << "KisOpenGLCanvas2::resizeGL"
+             << "size:" << QSize(width, height)
+             << "adjusted size:" << widgetSizeAlignedToDevicePixel();
     paintGL();
 }
 
