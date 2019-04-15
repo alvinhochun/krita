@@ -1070,11 +1070,6 @@ void KisCanvas2::documentOffsetMoved(const QPoint &documentOffset)
 
     m_d->coordinatesConverter->setDocumentOffset(offsetAdjusted);
     QPointF offsetAfter = m_d->coordinatesConverter->imageRectInViewportPixels().topLeft();
-    qDebug() << "KisCanvas2::documentOffsetMoved,"
-             << "documentOffset:" << documentOffset
-             << "offsetAdjusted:" << offsetAdjusted
-             << "offsetBefore:" << offsetBefore
-             << "offsetAfter:" << offsetAfter;
 
     QPointF moveOffset = offsetAfter - offsetBefore;
 

@@ -158,8 +158,6 @@ void KisCoordinatesConverter::setCanvasWidgetSize(QSizeF size)
 
 void KisCoordinatesConverter::setDevicePixelRatio(qreal value)
 {
-    qDebug() << "KisCoordinatesConverter::setDevicePixelRatio,"
-             << "value:" << m_d->devicePixelRatio << "to" << value;
     m_d->devicePixelRatio = value;
 }
 
