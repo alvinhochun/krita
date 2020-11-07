@@ -809,6 +809,13 @@
             </property>
            </widget>
           </item>
+          <item>
+           <widget class="QPushButton" name="btnNewsLang">
+            <property name="text">
+             <string>Language</string>
+            </property>
+           </widget>
+          </item>
          </layout>
         </item>
         <item>

@@ -35,6 +35,7 @@
 
 #include <QListWidget>
 #include <QListWidgetItem>
+#include <QMenu>
 
 #include "kis_icon_utils.h"
 #include "krita_utils.h"
@@ -51,6 +52,8 @@
 #include <QCoreApplication>
 #include <kis_debug.h>
 #include <QDir>
+
+#include <array>
 
 #include "config-updaters.h"
 
@@ -138,6 +141,89 @@ KisWelcomePageWidget::KisWelcomePageWidget(QWidget *parent)
     versionNotificationLabel->setVisible(false);
     bnVersionUpdate->setVisible(false);
     bnErrorDetails->setVisible(false);
+
+    {
+        // Hard-coded news language data:
+        // These are languages in which the news items should be regularly
+        // translated into as of 2020-11-07.
+        // The language display names should not be translated. This reflects
+        // the language selection box on the Krita website.
+        struct Lang {
+            const QLatin1String siteCode;
+            const QString name;
+        };
+        static const std::array<Lang, 5> newsLangs = {{
+            {QLatin1String("en"), QStringLiteral("English")},
+            {QLatin1String("jp"), QStringLiteral("日本語")},
+            {QLatin1String("zh"), QStringLiteral("中文 (简体)")},
+            {QLatin1String("zh-tw"), QStringLiteral("中文 (台灣正體)")},
+            {QLatin1String("zh-hk"), QStringLiteral("香港廣東話")},
+        }};
+
+        // TODO: Load from config.
+        QSet<QString> enabledNewsLangs;
+
+        // TODO: Extract to function
+        const auto getAutoNewsLang = []() {
+            // Get current UI languages:
+            const QStringList uiLangs = KLocalizedString::languages();
+
+            // TODO: Extract to function
+            const auto mapKi18nLangToNewsLang = [](const QString &ki18nLang) {
+                if (ki18nLang == "ja") {
+                    return QLatin1String("jp");
+                }
+                if (ki18nLang == "zh_CN") {
+                    return QLatin1String("zh");
+                }
+                if (ki18nLang == "zh_TW") {
+                    return QLatin1String("zh-tw");
+                }
+                if (ki18nLang == "zh_HK") {
+                    return QLatin1String("zh-hk");
+                }
+                if (ki18nLang == "en" || ki18nLang == "en_US" || ki18nLang == "en_GB") {
+                    return QLatin1String("en");
+                }
+                return QLatin1String();
+            };
+
+            QLatin1String autoNewsLang;
+            // Iterate UI languages including fallback languages.
+            Q_FOREACH(const auto &uiLang, uiLangs) {
+                autoNewsLang = mapKi18nLangToNewsLang(uiLang);
+                if (!autoNewsLang.isEmpty()) {
+                    break;
+                }
+            }
+            if (autoNewsLang.isEmpty()) {
+                // If nothing else, use English.
+                autoNewsLang = QLatin1String("en");
+            }
+            return autoNewsLang;
+        };
+
+        if (enabledNewsLangs.isEmpty()) {
+            QLatin1String lang = getAutoNewsLang();
+            enabledNewsLangs.insert(QString(lang));
+        }
+
+        QMenu *newsLangMenu = new QMenu(this);
+        for (const auto &lang : newsLangs) {
+            QAction *langItem = newsLangMenu->addAction(lang.name);
+            langItem->setCheckable(true);
+            const QLatin1String code = lang.siteCode;
+            connect(langItem, &QAction::toggled, [=](bool checked) {
+                newsWidget->toggleNewsLanguage(code, checked);
+            });
+            // TODO: Save language changes to config.
+
+            if (enabledNewsLangs.contains(code)) {
+                langItem->setChecked(true);
+            }
+        }
+        btnNewsLang->setMenu(newsLangMenu);
+    }
 
     connect(chkShowNews, SIGNAL(toggled(bool)), newsWidget, SLOT(toggleNews(bool)));
 
